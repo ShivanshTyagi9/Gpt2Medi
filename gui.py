@@ -1,15 +1,13 @@
 import os
 import wave
-import threading
-import pyaudio
 import requests
+import pyaudio
+import streamlit as st
 import google.generativeai as genai
-import tkinter as tk
-from tkinter import ttk
-from tkinter import scrolledtext
 from dotenv import load_dotenv
-load_dotenv()
 
+# Load environment variables
+load_dotenv()
 
 # ======================= CONFIG ==========================
 API_KEY = os.getenv("GOOGLE-API-KEY")
@@ -18,37 +16,31 @@ GEN_MODEL = "gemini-2.0-flash"
 SYMPTOM_API_URL = "http://localhost:8000/predict/symptoms"
 TREATMENT_API_URL = "http://localhost:8000/predict/treatments"
 
-# Audio recording
+# Audio recording config
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 44100
 CHUNK = 1024
 RECORD_SECONDS = 5
 
-# Gemini Config
+# Gemini setup
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel(GEN_MODEL)
 
+# ======================= Functions ==========================
+def record_audio():
+    audio = pyaudio.PyAudio()
+    stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
+    frames = [stream.read(CHUNK) for _ in range(0, int(RATE / CHUNK * RECORD_SECONDS))]
+    stream.stop_stream()
+    stream.close()
+    audio.terminate()
 
-def record_audio(status_label):
-    try:
-        status_label.config(text="🎙️ Recording...")
-        audio = pyaudio.PyAudio()
-        stream = audio.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_per_buffer=CHUNK)
-        frames = [stream.read(CHUNK) for _ in range(0, int(RATE / CHUNK * RECORD_SECONDS))]
-        stream.stop_stream()
-        stream.close()
-        audio.terminate()
-
-        with wave.open(AUDIO_FILENAME, 'wb') as wf:
-            wf.setnchannels(CHANNELS)
-            wf.setsampwidth(audio.get_sample_size(FORMAT))
-            wf.setframerate(RATE)
-            wf.writeframes(b''.join(frames))
-
-        status_label.config(text="✅ Recording complete.")
-    except Exception as e:
-        status_label.config(text=f"❌ Recording error: {e}")
+    with wave.open(AUDIO_FILENAME, 'wb') as wf:
+        wf.setnchannels(CHANNELS)
+        wf.setsampwidth(audio.get_sample_size(FORMAT))
+        wf.setframerate(RATE)
+        wf.writeframes(b''.join(frames))
 
 def transcribe_audio():
     if not os.path.exists(AUDIO_FILENAME):
@@ -83,103 +75,34 @@ def send_treatment_query(disease_name):
     except requests.exceptions.RequestException as e:
         return f"❌ Request failed: {e}"
 
+# ======================= Streamlit UI ==========================
 
+st.set_page_config(page_title="🎙️ GPT-2 Medi", layout="centered")
+st.title("🎙️ GPT-2 Medi Voice Diagnosis")
 
-def run_pipeline(status_label, transcript_box, response_box, treatment_box):
-    record_audio(status_label)
-    status_label.config(text="🤖 Transcribing...")
-    disease = transcribe_audio()
+if st.button("Start Voice Diagnosis 🎤"):
+    with st.spinner("Recording audio..."):
+        record_audio()
 
-    transcript_box.delete("1.0", tk.END)
-    transcript_box.insert(tk.END, disease)
+    with st.spinner("Transcribing disease from audio..."):
+        disease = transcribe_audio()
 
-    status_label.config(text="📡 Fetching symptoms...")
-    symptoms = send_symptom_query(disease)
+    st.subheader("📄 Transcription")
+    st.text_area("Disease Mentioned", disease, height=100)
 
-    status_label.config(text="📡 Fetching treatments...")
-    treatments = send_treatment_query(disease)
+    with st.spinner("Fetching symptoms..."):
+        symptoms = send_symptom_query(disease)
 
-    response_box.delete("1.0", tk.END)
-    response_box.insert(tk.END, symptoms)
+    st.subheader("🧬 Symptoms Analysis")
+    st.text_area("Symptoms", symptoms, height=150)
 
-    treatment_box.delete("1.0", tk.END)
-    treatment_box.insert(tk.END, treatments)
+    with st.spinner("Fetching treatments..."):
+        treatments = send_treatment_query(disease)
 
-    status_label.config(text="✅ Done.")
+    st.subheader("💊 Treatment Recommendations")
+    st.text_area("Treatments", treatments, height=150)
 
-
-def start_process(status_label, transcript_box, response_box, treatment_box):
-    threading.Thread(target=run_pipeline, args=(status_label, transcript_box, response_box, treatment_box)).start()
-
-# ======================= GUI SETUP ==========================
-root = tk.Tk()
-root.title("Voice Medical Assistant")
-root.geometry("720x700")
-root.configure(bg="#eaf0f6")
-
-style = ttk.Style()
-style.theme_use("clam")
-style.configure("TButton",
-                font=("Segoe UI", 12, "bold"),
-                padding=10,
-                relief="flat",
-                background="#5c4dff",
-                foreground="white")
-style.map("TButton",
-          background=[('active', '#4b39db')],
-          relief=[('pressed', 'sunken')])
-
-# Fonts
-TITLE_FONT = ("Segoe UI", 20, "bold")
-LABEL_FONT = ("Segoe UI", 12, "bold")
-BOX_FONT = ("Segoe UI", 11)
-
-# Title
-title_label = ttk.Label(root, text="🎙️ Voice Medical Assistant", font=TITLE_FONT, background="#eaf0f6", foreground="#111827")
-title_label.pack(pady=(30, 10))
-
-# Status label
-status_label = ttk.Label(root, text="Ready", font=LABEL_FONT, background="#eaf0f6", foreground="#374151")
-status_label.pack(pady=(0, 20))
-
-# Main container frame
-container = tk.Frame(root, bg="white", bd=0, relief="flat")
-container.pack(padx=40, pady=10, fill="both", expand=True)
-
-# Start Diagnosis Button
-start_btn = ttk.Button(container, text="🎙️ Start Voice Diagnosis",
-                       command=lambda: start_process(status_label, transcript_box, response_box, treatment_box))
-start_btn.pack(fill="x", pady=(10, 20), padx=20)
-
-# Box Styles
-box_config = {
-    "wrap": tk.WORD,
-    "height": 5,
-    "font": BOX_FONT,
-    "bg": "#f9fafb",
-    "bd": 1,
-    "relief": "solid"
-}
-
-# Transcription Box
-tk.Label(container, text="📄 Transcription", bg="white", font=LABEL_FONT, anchor="w").pack(anchor="w", padx=20, pady=(0, 5))
-transcript_box = scrolledtext.ScrolledText(container, **box_config)
-transcript_box.pack(padx=20, pady=(0, 20), fill="x")
-
-# Symptoms Analysis Box
-tk.Label(container, text="🧬 Symptoms Analysis", bg="white", font=LABEL_FONT, anchor="w").pack(anchor="w", padx=20, pady=(0, 5))
-box_config["height"] = 6
-response_box = scrolledtext.ScrolledText(container, **box_config)
-response_box.pack(padx=20, pady=(0, 20), fill="x")
-
-# Treatment Recommendations Box
-tk.Label(container, text="💊 Treatment Recommendations", bg="white", font=LABEL_FONT, anchor="w").pack(anchor="w", padx=20, pady=(0, 5))
-box_config["height"] = 6
-treatment_box = scrolledtext.ScrolledText(container, **box_config)
-treatment_box.pack(padx=20, pady=(0, 20), fill="x")
-
-# Exit Button
-exit_btn = ttk.Button(root, text="❌ Close Application", command=root.quit)
-exit_btn.pack(pady=(10, 20))
-
-root.mainloop()
+st.markdown("---")
+st.caption("Made using Streamlit and FastAPI")
+st.caption("© 2025 Shivansh Tyagi")
+st.caption("All rights reserved.")
