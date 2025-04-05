@@ -4,6 +4,10 @@ An AI-powered medical assistant for doctors to get both **symptoms** and **treat
 - 🔍 A RAG pipeline for treatment info retrieval via ChromaDB.
 - 🎤 Voice input support.
 - 🚀 FastAPI backend, Dockerized & Hugging Face hosted.
+
+## Fine Tuning GPT-2
+Take a look at this Jupyter Notebook for the Fine-Tuned Gpt-2 on Disease-Symptom Dataset
+
 ## Architecture
 
 ---
