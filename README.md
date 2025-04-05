@@ -6,7 +6,7 @@ An AI-powered medical assistant for doctors to get both **symptoms** and **treat
 - 🚀 FastAPI backend, Dockerized & Hugging Face hosted.
 
 ## Fine Tuning GPT-2
-Take a look at this Jupyter Notebook for the Fine-Tuned Gpt-2 on Disease-Symptom Dataset
+Take a look at this [Jupyter Notebook](Tools/Gpt2-Medi.ipynb) for the Fine-Tuned Gpt-2 on [Disease-Symptom Dataset](https://huggingface.co/datasets/QuyenAnhDE/Diseases_Symptoms)
 
 ## Architecture
 
