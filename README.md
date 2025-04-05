@@ -10,6 +10,8 @@ Take a look at this Jupyter Notebook for the Fine-Tuned Gpt-2 on Disease-Symptom
 
 ## Architecture
 
+![Gpt2-Medi](Images/Gpt2-Medi.png)
+
 ---
 
 Gpt2Medi is deployed on HuggingFace via endpoint: https://cosmic09-gpt2medi.hf.space/docs 
