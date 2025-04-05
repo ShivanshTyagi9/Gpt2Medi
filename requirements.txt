@@ -1,4 +1,6 @@
 fastapi
+streamlit
+pandas
 pydantic
 uvicorn
 torch
