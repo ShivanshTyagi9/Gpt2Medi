@@ -7,7 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1sy1aMLN9yIVMPHo0_wg4ynf-um3vZ66c
 """
 
-!pip install torch torchtext transformers sentencepiece pandas tqdm datasets
+#!pip install torch torchtext transformers sentencepiece pandas tqdm datasets
 
 from datasets import load_dataset
 import pandas as pd
