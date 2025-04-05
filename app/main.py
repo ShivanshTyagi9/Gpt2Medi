@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import SentenceTransformerEmbeddings
+from langchain_chroma import Chroma
+from langchain_huggingface import HuggingFaceEmbeddings
 import torch
 
 app = FastAPI()
@@ -17,7 +17,7 @@ model = model.to(device)
 model.eval()
 
 persist_dir = "./treatments_db"
-embeddings = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
+embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 vectorstore = Chroma(persist_directory=persist_dir, embedding_function=embeddings)
 
 
